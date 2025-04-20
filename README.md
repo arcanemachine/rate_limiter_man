@@ -1,21 +1,26 @@
 # RateLimiterMan
 
-**TODO: Add description**
+A simple rate limiter implementation, adapted from [a blog post by Alex Koutmous](https://akoutmos.com/post/rate-limiting-with-genservers/).
 
-## Installation
+> #### Warning
+>
+> This is a very early release. It works but has some rough edges, and shouldn't be considered
+> production-ready for most use cases.
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `rate_limiter_man` to your list of dependencies in `mix.exs`:
+## Getting started
+
+### Installation
+
+Add this package to your list of dependencies in `mix.exs`, then run `mix deps.get`:
 
 ```elixir
-def deps do
-  [
-    {:rate_limiter_man, "~> 0.1.0"}
-  ]
-end
+{:rate_limiter_man, "0.1.0"}
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/rate_limiter_man>.
+### Usage
 
+Basic usage instructions coming soon. For now, see [the blog post by Alex Koutmous](https://akoutmos.com/post/rate-limiting-with-genservers/).
+
+This project also has a mechanism for the rate limiter to pass its responses back to the caller. See `RateLimiterMan.make_request/4` for more information.
+
+For more information, see [the project documentation](https://hexdocs.pm/rate_limiter_man).
