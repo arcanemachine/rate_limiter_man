@@ -1,11 +1,11 @@
 # RateLimiterMan
 
-A simple rate limiter implementation, adapted from [a blog post by Alex Koutmous](https://akoutmos.com/post/rate-limiting-with-genservers/).
-
 > #### Warning
 >
 > This is a very early release. It works but has some rough edges, and shouldn't be considered
 > production-ready for most use cases.
+
+A simple rate limiter implementation, adapted from [a blog post by Alex Koutmous](https://akoutmos.com/post/rate-limiting-with-genservers/).
 
 ## Getting started
 
@@ -14,7 +14,7 @@ A simple rate limiter implementation, adapted from [a blog post by Alex Koutmous
 Add this package to your list of dependencies in `mix.exs`, then run `mix deps.get`:
 
 ```elixir
-{:rate_limiter_man, "0.1.0"}
+{:rate_limiter_man, "0.1.1"}
 ```
 
 ### Usage
