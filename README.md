@@ -7,14 +7,30 @@
 
 A simple rate limiter implementation, adapted from [a blog post by Alex Koutmous](https://akoutmos.com/post/rate-limiting-with-genservers/).
 
+This package supports the use of multiple rate limiters in your application. Just follow the instructions, using a different config key for each rate limiter you want to add.
+
 ## Getting started
 
-### Installation
+### Install the package
 
 Add this package to your list of dependencies in `mix.exs`, then run `mix deps.get`:
 
 ```elixir
 {:rate_limiter_man, "0.1.1"}
+```
+
+### Configure your application
+
+Add the desired rate limiter config for your client:
+
+`config/config.exs`
+```elixir
+import Config
+
+config :your_project, YourProject.SomeApi,
+  rate_limiter: RateLimiterMan.LeakyBucket,
+  # This value may be an integer or a float
+  rate_limiter_max_requests_per_second: 0.5
 ```
 
 ### Usage
