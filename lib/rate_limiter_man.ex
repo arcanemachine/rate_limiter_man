@@ -4,16 +4,14 @@ defmodule RateLimiterMan do
   Koutmous](https://akoutmos.com/post/rate-limiting-with-genservers/).
 
   This package handles logic for limiting the rate at which HTTP requests are sent.
-
-  > #### TODO {: .warning}
-  >
-  > Add more documentation.
   """
 
-  @callback make_request(atom(), tuple(), keyword()) :: :ok
+  @callback make_request(atom(), atom(), tuple(), keyword()) :: :ok
 
   def make_request(otp_app, config_key, request_handler, opts \\ []) do
-    get_rate_limiter(otp_app, config_key).make_request(request_handler, opts)
+    rate_limiter = get_rate_limiter(otp_app, config_key)
+
+    rate_limiter.make_request(otp_app, config_key, request_handler, opts)
   end
 
   def calculate_refresh_rate(otp_app, config_key) do
@@ -23,13 +21,13 @@ defmodule RateLimiterMan do
   end
 
   def get_rate_limiter(otp_app, config_key),
-    do: get_rate_limiter_config(otp_app, config_key, :rate_limiter)
+    do: get_config(otp_app, config_key, :rate_limiter_algorithm)
 
   def get_max_requests_per_second(otp_app, config_key),
-    do: get_rate_limiter_config(otp_app, config_key, :rate_limiter_max_requests_per_second)
+    do: fetch_config!(otp_app, config_key, :rate_limiter_max_requests_per_second)
 
   @doc "Receive a response from a rate limiter."
-  def receive_response(unique_request_id, timeout \\ 15_000) do
+  def receive_response(unique_request_id, timeout \\ :timer.seconds(15)) do
     receive do
       {:ok, %{request_id: request_id, response: response}} when request_id == unique_request_id ->
         response
@@ -47,6 +45,9 @@ defmodule RateLimiterMan do
 
   def start_task_supervisor, do: {Task.Supervisor, name: RateLimiterMan.TaskSupervisor}
 
-  defp get_rate_limiter_config(otp_app, config_key, subkey),
+  def get_config(otp_app, config_key, subkey, default \\ nil),
+    do: Application.fetch_env!(otp_app, config_key) |> Keyword.get(subkey, default)
+
+  def fetch_config!(otp_app, config_key, subkey),
     do: Application.fetch_env!(otp_app, config_key) |> Keyword.fetch!(subkey)
 end

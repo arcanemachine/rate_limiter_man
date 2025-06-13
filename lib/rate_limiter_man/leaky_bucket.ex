@@ -2,9 +2,20 @@ defmodule RateLimiterMan.LeakyBucket do
   @moduledoc """
   A leaky-bucket rate limiter that processes requests at a fixed rate (e.g. 1 request per second).
 
-  > #### TODO {: .warning}
+  ## Required config keys
+
+  - `:`
+
+  ## Optional config keys
+
+  - `:rate_limiter_logger_level` - Determines what type of Logger statement to generate when a
+  request is pushed to or popped from the queue. (default: `nil`)
+    - Examples: `nil` (Logging disabled), `:debug`, `:info`
+
+  > #### Warning {: .warning}
   >
-  > Add more documentation.
+  > The log statements may contain sensitive data (e.g. API keys). There is currently no way of
+  > modifying the contents of the Logger statement.
   """
 
   @behaviour RateLimiterMan
@@ -38,54 +49,70 @@ defmodule RateLimiterMan.LeakyBucket do
     {:ok, state, {:continue, :initial_timer}}
   end
 
-  ## -- Client facing function --
+  ## Client API
 
   @doc """
-  Call a function using the rate limiter.
+  Call a function via the rate limiter.
 
-  ## Handling the response
+  The `otp_app` must be the atom name of your OTP application, as configured in `mix.exs` (e.g.
+  `:your_project`).
+
+  The `config_key` must be the namespace in your project's config where the rate limiter
+  instance's config exists. This value must match the value that was used to create the rate
+  limiter instance in your application's supervision tree.
+
+  The `request_handler` is a tuple that is passed to `Kernel.apply/3`, which represents the
+  function to be called by the rate limiter.
 
   The response may be handled in the following ways:
     - Send the response to a process (e.g. the process that called the rate limiter)
     - Handle the response as an async task
     - Do nothing with the response
 
+  ## Options
+
+  ### Generic options
+
+  - `:logger_level` - Determines what type of Logger statement to generate when a
+  request is pushed to or popped from the queue. If this option is not given, the config value
+  for `:rate_limiter_logger_level` in the `config_key` will be used (default: `nil`)
+    - Examples: `nil` (Logging disabled), `:debug`, `:info`
+
+  > #### Warning {: .warning}
+  >
+  > The log statements may contain sensitive data (e.g. API keys). There is currently no way of
+  > modifying the contents of the Logger statement.
+
   ### Send the response to a process
 
   To receive a response from the rate limiter, you must pass in the following `opts`:
 
-  - `:send_response_to_pid` - The process that will receive the response (e.g. `self()`)
+  - `:send_response_to_pid` - The process that will receive the response (default: `nil`)
+    - Examples: `self()`, `pid(0, 1, 2)`
 
-  - `:request_id` - A unique identifier for the request (e.g. a random number, or an
-  `x-request-id` header)
-
-  Then, add a receive block where you want the response to be received:
-
-      iex> receive do
-      ...>   {:ok, %{request_id: request_id, resp: resp}} when request_id == your_request_id ->
-      ...>     resp
-      ...> after
-      ...>   30_000 -> {:error, :gateway_timeout}
-      ...> end
+  - `:request_id` - A unique identifier for the request, such as a random number or an
+  `x-request-id` header) (default: `nil`)
+    - Examples: `"abc"`, `123`
 
   ### Handle the response as an async task
 
-  To handle the response as an async task, you must pass in the following `opts`:
+  To handle the response by calling a function as an async task, you must pass in the following
+  `opts`:
 
-  - `:async_response_handler` - A 2-item tuple that contains the name of the module, and an atom
-  name of the 1-arity function that will handle the response.
+  - `:response_handler` - A 2-item tuple that contains the name of the module, and an atom name of
+  the 1-arity function that will handle the response.
     - Example: `{YourProject.SomeApi, :handle_response}`
 
   ### Do nothing
 
-  To do nothing with the response, simply omit any of the options used in the previous handler
+  To do nothing with the response, just omit any of the options used in the previous handler
   strategies.
 
   ## Examples
 
   Get a reference to the desired rate limiter for the following examples:
 
-      iex> rate_limiter = RateLimiterMan.get_rate_limiter(YourProject.RateLimiter)
+      iex> rate_limiter = RateLimiterMan.get_rate_limiter(:your_project, YourProject.SomeApi)
 
   Make a request with the rate limiter:
 
@@ -95,6 +122,14 @@ defmodule RateLimiterMan.LeakyBucket do
       ...>   _request_handler = {IO, :puts, ["Hello world!"]}
       ...> )
       :ok
+
+  ### Handle the response as an async task
+
+  To handle the response as an async task, you must pass in the following `opts`:
+
+  - `:response_handler` - A 2-item tuple that contains the name of the module, and the atom name
+  of the 1-arity function that will handle the response.
+    - Example: `{YourProject.SomeApi, :your_response_handler}`
 
   ### Send the response to a process
 
@@ -110,26 +145,40 @@ defmodule RateLimiterMan.LeakyBucket do
       iex> rate_limiter.make_request(
       ...>   _otp_app = :your_project,
       ...>   _config_key = YourProject.RateLimiter,
-      ...>   _request_handler = {String, :duplicate, ["Hello world! ", 2]},
+      ...>   _request_handler = {Enum, :join, [["Hello", "world!"], " "]},
       ...>   send_response_to_pid: self(),
-      ...>   request_id: unique_request_id
+      ...>   request_id: request_id
       ...> )
       :ok
 
-  Receive the response from the rate limiter:
+  Get the response back from the rate limiter:
 
       iex> response = RateLimiterMan.receive_response(request_id)
-      "Hello world! Hello world! "
+      "Hello world!"
   """
   @impl true
-  def make_request(config_key, request_handler, opts \\ []) do
+  def make_request(otp_app, config_key, request_handler, opts \\ []) do
+    opts =
+      case Keyword.get(opts, :logger_level, :not_in_opts) do
+        :not_in_opts ->
+          # Fall back to configured logger level
+          opts
+          |> Keyword.put(
+            :logger_level,
+            RateLimiterMan.get_config(otp_app, config_key, :rate_limiter_logger_level)
+          )
+
+        _ ->
+          opts
+      end
+
     GenServer.cast(
       RateLimiterMan.get_instance_name(config_key),
       {:enqueue_request, request_handler, opts}
     )
   end
 
-  ## -- Server Callbacks --
+  ## Server API
 
   @impl true
   def handle_continue(:initial_timer, state) do
@@ -138,7 +187,10 @@ defmodule RateLimiterMan.LeakyBucket do
 
   @impl true
   def handle_cast({:enqueue_request, request_handler, opts}, state) do
-    Logger.debug("Adding a request to the rate limiter queue: #{inspect(request_handler)}")
+    maybe_log(
+      opts[:logger_level],
+      "Adding a request to the rate limiter queue: #{inspect(request_handler)}"
+    )
 
     updated_queue = :queue.in({request_handler, opts}, state.request_queue)
     new_queue_size = state.request_queue_size + 1
@@ -156,19 +208,28 @@ defmodule RateLimiterMan.LeakyBucket do
     {{:value, {request_handler, opts}}, new_request_queue} =
       :queue.out(state.request_queue)
 
-    # Sanity check: Ensure that request ID is present if respond-to PID is given
-    if not is_nil(opts[:send_response_to_pid]) and is_nil(opts[:request_id]) do
-      raise "request_id must be given if send_response_to_pid is given"
+    # Validate options
+    if not Enum.all?([opts[:send_response_to_pid], opts[:request_id]], &(not is_nil(&1))) and
+         Enum.any?([opts[:send_response_to_pid], opts[:request_id]], &(not is_nil(&1))) do
+      raise """
+      if either option `send_response_to_pid` or `request_id` is non-nil, then both options must
+      be non-nil
+      """
     end
 
-    Logger.debug("Popping a request from the rate limiter queue: #{inspect(request_handler)}")
+    {logger_level, opts} = Keyword.pop(opts, :logger_level)
+
+    maybe_log(
+      logger_level,
+      "Popping a request from the rate limiter queue: #{inspect(request_handler)}"
+    )
 
     Task.Supervisor.async_nolink(RateLimiterMan.TaskSupervisor, fn ->
       {req_module, req_function, req_args} = request_handler
       response = apply(req_module, req_function, req_args)
 
-      if not is_nil(opts[:async_response_handler]) do
-        {resp_module, resp_function} = opts[:async_response_handler]
+      if not is_nil(opts[:response_handler]) do
+        {resp_module, resp_function} = opts[:response_handler]
         apply(resp_module, resp_function, [response])
       end
 
@@ -199,7 +260,9 @@ defmodule RateLimiterMan.LeakyBucket do
     {:noreply, state}
   end
 
-  defp schedule_timer(queue_poll_rate) do
-    Process.send_after(self(), :pop_from_request_queue, queue_poll_rate)
-  end
+  defp maybe_log(nil, _message), do: nil
+  defp maybe_log(level, message), do: Logger.log(level, [message])
+
+  defp schedule_timer(queue_poll_rate),
+    do: Process.send_after(self(), :pop_from_request_queue, queue_poll_rate)
 end
