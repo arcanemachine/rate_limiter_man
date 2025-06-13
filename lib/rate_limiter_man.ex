@@ -10,27 +10,36 @@ defmodule RateLimiterMan do
   > Add more documentation.
   """
 
-  @type response_handler :: tuple() | :no_response_handler
+  @type response_handler :: tuple() | nil
 
   @callback make_request(atom(), tuple(), response_handler(), keyword()) :: :ok
-  def make_request(api_provider, request_handler, response_handler, opts \\ []) do
-    get_rate_limiter(api_provider).make_request(request_handler, response_handler, opts)
+  def make_request(otp_app, config_key, request_handler, response_handler, opts \\ []) do
+    get_rate_limiter(otp_app, config_key).make_request(request_handler, response_handler, opts)
   end
 
-  def skip_response_handler(res), do: fn -> res end
+  def calculate_refresh_rate(otp_app, config_key) do
+    max_requests_per_second = get_max_requests_per_second(otp_app, config_key)
 
-  def get_rate_limiter(api_provider),
-    do: get_rate_limiter_config(api_provider, :rate_limiter)
-
-  def get_max_requests_per_second(api_provider),
-    do: get_rate_limiter_config(api_provider, :rate_limiter_max_requests_per_second)
-
-  def calculate_refresh_rate(max_requests_per_second),
-    do: floor(:timer.seconds(1) / max_requests_per_second)
-
-  defp get_rate_limiter_config(api_provider, config_key) do
-    api_provider_config = Application.fetch_env!(:resort_indexer, api_provider)
-
-    Keyword.fetch!(api_provider_config, config_key)
+    floor(:timer.seconds(1) / max_requests_per_second)
   end
+
+  def get_rate_limiter(otp_app, config_key),
+    do: get_rate_limiter_config(otp_app, config_key, :rate_limiter)
+
+  def get_max_requests_per_second(otp_app, config_key),
+    do: get_rate_limiter_config(otp_app, config_key, :rate_limiter_max_requests_per_second)
+
+  def skip_response_handler(response), do: fn -> response end
+
+  @doc "Get the process name for a rate limiter instance by its `config_key`."
+  def get_instance_name(config_key),
+    do: String.to_atom("#{Macro.underscore(config_key)}_leaky_bucket_rate_limiter")
+
+  def start_rate_limiter(otp_app, config_key),
+    do: {get_rate_limiter(otp_app, config_key), %{otp_app: otp_app, config_key: config_key}}
+
+  def start_task_supervisor, do: {Task.Supervisor, name: RateLimiterMan.TaskSupervisor}
+
+  defp get_rate_limiter_config(otp_app, config_key, subkey),
+    do: Application.fetch_env!(otp_app, config_key) |> Keyword.fetch!(subkey)
 end

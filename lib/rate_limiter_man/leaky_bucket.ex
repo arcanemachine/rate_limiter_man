@@ -15,29 +15,23 @@ defmodule RateLimiterMan.LeakyBucket do
 
   def child_spec(arg) do
     %{
-      id: get_instance_name(arg[:application_context]),
+      id: RateLimiterMan.get_instance_name(arg[:config_key]),
       start: {RateLimiterMan.LeakyBucket, :start_link, [arg]}
     }
   end
 
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, name: get_instance_name(opts[:application_context]))
+    GenServer.start_link(__MODULE__, opts,
+      name: RateLimiterMan.get_instance_name(opts[:config_key])
+    )
   end
 
-  defp get_instance_name(application_context)
-  defp get_instance_name(nil), do: __MODULE__
-
-  defp get_instance_name(application_context),
-    do: String.to_atom("#{Macro.underscore(application_context)}_leaky_bucket_rate_limiter")
-
   @impl true
-  def init(opts) do
+  def init(%{otp_app: otp_app, config_key: config_key} = _init_arg) do
     state = %{
-      supervisor: opts[:supervisor],
       request_queue: :queue.new(),
       request_queue_size: 0,
-      request_queue_poll_rate:
-        RateLimiterMan.calculate_refresh_rate(opts.max_requests_per_second),
+      request_queue_poll_rate: RateLimiterMan.calculate_refresh_rate(otp_app, config_key),
       send_after_ref: nil
     }
 
@@ -74,7 +68,8 @@ defmodule RateLimiterMan.LeakyBucket do
   Make a request using the rate limiter:
 
       iex> rate_limiter.make_request(
-      ...>   _api_provider = YourProject.RateLimiter,
+      ...>   _otp_app = :your_project,
+      ...>   _config_key = YourProject.RateLimiter,
       ...>   _request_handler = {IO, :puts, ["Hello world!"]}
       ...> )
       :ok
@@ -87,7 +82,8 @@ defmodule RateLimiterMan.LeakyBucket do
 
       # Make the request
       iex> rate_limiter.make_request(
-      ...>   _api_provider = YourProject.RateLimiter,
+      ...>   _otp_app = :your_project,
+      ...>   _config_key = YourProject.RateLimiter,
       ...>   _request_handler = {String, :duplicate, ["Hello world! ", 2]},
       ...>   _response_handler = nil,
       ...>   from: self(),
@@ -105,19 +101,24 @@ defmodule RateLimiterMan.LeakyBucket do
       "Hello world! Hello world! "
   """
   @impl true
-  def make_request(api_provider, request_handler, response_handler \\ nil, opts \\ [])
+  def make_request(otp_app, config_key, request_handler, response_handler \\ nil, opts \\ [])
 
-  def make_request(api_provider, request_handler, nil, opts),
-    do: make_request(api_provider, request_handler, {__MODULE__, :skip_response_handler}, opts)
-
-  def make_request(api_provider, request_handler, response_handler, opts) do
-    GenServer.cast(
-      get_instance_name(api_provider),
-      {:enqueue_request, request_handler, response_handler, opts}
+  def make_request(otp_app, config_key, request_handler, nil, opts) do
+    make_request(
+      otp_app,
+      config_key,
+      request_handler,
+      {RateLimiterMan, :skip_response_handler},
+      opts
     )
   end
 
-  def skip_response_handler(res), do: fn -> res end
+  def make_request(_otp_app, config_key, request_handler, response_handler, opts) do
+    GenServer.cast(
+      RateLimiterMan.get_instance_name(config_key),
+      {:enqueue_request, request_handler, response_handler, opts}
+    )
+  end
 
   ## -- Server Callbacks --
 
@@ -148,7 +149,7 @@ defmodule RateLimiterMan.LeakyBucket do
 
     Logger.debug("Popping a request from the rate limiter queue: #{inspect(request_handler)}")
 
-    Task.Supervisor.async_nolink(state.supervisor, fn ->
+    Task.Supervisor.async_nolink(RateLimiterMan.TaskSupervisor, fn ->
       {req_module, req_function, req_args} = request_handler
       {resp_module, resp_function} = response_handler
 
