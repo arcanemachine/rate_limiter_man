@@ -29,6 +29,15 @@ defmodule RateLimiterMan do
   def get_max_requests_per_second(otp_app, config_key),
     do: get_rate_limiter_config(otp_app, config_key, :rate_limiter_max_requests_per_second)
 
+  def receive_response(unique_request_id, timeout \\ 15_000) do
+    receive do
+      {:ok, %{request_id: request_id, response: response}} when request_id == unique_request_id ->
+        response
+    after
+      timeout -> {:error, :timeout}
+    end
+  end
+
   def skip_response_handler(response), do: fn -> response end
 
   @doc "Get the process name for a rate limiter instance by its `config_key`."

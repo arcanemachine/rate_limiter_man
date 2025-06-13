@@ -77,27 +77,25 @@ defmodule RateLimiterMan.LeakyBucket do
   Or, make a request using the rate limiter, and have the rate limiter send the response back to
   the caller via message passing:
 
-      # Generate a unique request ID
+  Generate a unique request ID:
+
       iex> request_id = System.unique_integer()
 
-      # Make the request
+  Make the request:
+
       iex> rate_limiter.make_request(
       ...>   _otp_app = :your_project,
       ...>   _config_key = YourProject.RateLimiter,
       ...>   _request_handler = {String, :duplicate, ["Hello world! ", 2]},
       ...>   _response_handler = nil,
-      ...>   from: self(),
+      ...>   send_response_to_pid: self(),
       ...>   request_id: unique_request_id
       ...> )
       :ok
 
-      # Receive the response for further processing
-      iex> receive do
-      ...>   {:ok, %{request_id: request_id, resp: resp}} when request_id == unique_request_id ->
-      ...>     resp
-      ...> after
-      ...>   30_000 -> {:error, :gateway_timeout}
-      ...> end
+  Receive the response from the rate limiter:
+
+      iex> response = RateLimiterMan.receive_response(request_id)
       "Hello world! Hello world! "
   """
   @impl true
@@ -147,6 +145,13 @@ defmodule RateLimiterMan.LeakyBucket do
     {{:value, {request_handler, response_handler, opts}}, new_request_queue} =
       :queue.out(state.request_queue)
 
+    send_response_to_pid = Keyword.get(opts, :send_response_to_pid)
+
+    # Sanity check: Ensure that request ID is present if response message is expected
+    if not is_nil(opts[:send_response_to_pid]) do
+      opts[:request_id] || raise "request_id must be given if send_response_to_pid is given"
+    end
+
     Logger.debug("Popping a request from the rate limiter queue: #{inspect(request_handler)}")
 
     Task.Supervisor.async_nolink(RateLimiterMan.TaskSupervisor, fn ->
@@ -156,9 +161,10 @@ defmodule RateLimiterMan.LeakyBucket do
       response = apply(req_module, req_function, req_args)
       apply(resp_module, resp_function, [response])
 
-      if sender_pid = opts[:from] do
-        # Send the response to the specified process
-        send(sender_pid, {:ok, %{request_id: Keyword.fetch!(opts, :request_id), resp: response}})
+      if not is_nil(send_response_to_pid) do
+        request_id = Keyword.fetch!(opts, :request_id)
+
+        send(send_response_to_pid, {:ok, %{request_id: request_id, response: response}})
       end
     end)
 
