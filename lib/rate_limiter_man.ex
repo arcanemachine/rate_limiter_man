@@ -58,7 +58,7 @@ defmodule RateLimiterMan do
     def start(_type, _args) do
       children =
         [
-          # Add the TaskSupervisor before adding any rate limiters
+          # Add the task supervisor before adding any rate limiters
           RateLimiterMan.add_task_supervisor(),
           RateLimiterMan.add_rate_limiter(:your_project, YourProject.SomeApi),
           RateLimiterMan.add_rate_limiter(:your_project, YourProject.SomeOtherApi)
@@ -211,7 +211,7 @@ defmodule RateLimiterMan do
 
   @doc "Get the process name for a rate limiter instance by its `config_key`."
   def get_instance_name(config_key),
-    do: String.to_atom("#{Macro.underscore(config_key)}_leaky_bucket_rate_limiter")
+    do: String.to_atom("#{inspect(config_key)}_leaky_bucket_rate_limiter")
 
   @doc false
   def get_config(otp_app, config_key, subkey, default \\ nil),

@@ -19,7 +19,7 @@ This package supports multiple rate limiter instances in your application. Just 
 Add this package to your list of dependencies in `mix.exs`, then run `mix deps.get`:
 
 ```elixir
-{:rate_limiter_man, "0.2.2"}
+{:rate_limiter_man, "0.2.3"}
 ```
 
 ### Configure your application
@@ -54,11 +54,14 @@ defmodule YourProject.Application do
   def start(_type, _args) do
     children =
       [
-        # Add a task supervisor. This only needs to be added once:
+        # Add the task supervisor before adding any rate limiters. The task supervisor should only
+        # be declared once
         RateLimiterMan.add_task_supervisor(),
-        # Add one of these lines for each rate limiter instance. The OTP app name and config key
-        # must match the app name and key used in your config file ()
-        RateLimiterMan.add_rate_limiter(:your_project, YourProject.SomeApi)
+        # Add the desired rate limiter(s). The OTP app name and config key must match the app name
+        # and key used in your config file
+        RateLimiterMan.add_rate_limiter(:your_project, YourProject.SomeApi),
+        # RateLimiterMan.add_rate_limiter(:your_project, YourProject.SomeOtherApi),
+        # RateLimiterMan.add_rate_limiter(:your_project, YourProject.YetAnotherApi)
       ]
 
     opts = [strategy: :one_for_one, name: YourProject.Supervisor]

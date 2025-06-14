@@ -3,7 +3,7 @@ defmodule RateLimiterMan.MixProject do
 
   @project_name "Rate Limiter Man"
   @source_url "https://github.com/arcanemachine/rate_limiter_man"
-  @version "0.2.2"
+  @version "0.2.3"
 
   def project do
     [
