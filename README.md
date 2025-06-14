@@ -1,10 +1,10 @@
 # RateLimiterMan
 
+A simple rate limiter implementation, adapted from [a blog post by Alex Koutmous](https://akoutmos.com/post/rate-limiting-with-genservers/).
+
 > #### Warning {: .warning}
 >
-> This is a very early release. It works but has some rough edges, and shouldn't be considered production-ready for most use cases. It is probably not the most performant implementation out there, but it solves the need for which it was created.
-
-A simple rate limiter implementation, adapted from [a blog post by Alex Koutmous](https://akoutmos.com/post/rate-limiting-with-genservers/).
+> This is probably not the most performant rate limiter out there, but it solves the need for which it was created: adding rate limiting to an application that receives responses from multiple third-party APIs, each of which has its own rate limiter instance/config.
 
 > #### Warning {: .warning}
 >
@@ -19,7 +19,7 @@ This package supports multiple rate limiter instances in your application. Just 
 Add this package to your list of dependencies in `mix.exs`, then run `mix deps.get`:
 
 ```elixir
-{:rate_limiter_man, "0.2.3"}
+{:rate_limiter_man, "0.2.4"}
 ```
 
 ### Configure your application
@@ -37,6 +37,10 @@ config :your_project, YourProject.SomeApi,
   # Optional items
   ## rate_limiter_logger_level: :debug # Enable logging when the rate limiter handles a request
 ```
+
+> #### Tip {: .tip}
+>
+> Using the example above, the `otp_app` is `:your_project`, and the `config_key` is `YourProject.SomeApi`. These values are used to identify each rate limiter instance by the various functions in this package.
 
 > #### Warning {: .warning}
 >

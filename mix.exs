@@ -3,7 +3,7 @@ defmodule RateLimiterMan.MixProject do
 
   @project_name "Rate Limiter Man"
   @source_url "https://github.com/arcanemachine/rate_limiter_man"
-  @version "0.2.3"
+  @version "0.2.4"
 
   def project do
     [
@@ -12,6 +12,7 @@ defmodule RateLimiterMan.MixProject do
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      elixirc_paths: elixirc_paths(Mix.env()),
 
       # Hex
       description: "A simple rate limiter implementation (currently supports leaky bucket only)",
@@ -45,6 +46,9 @@ defmodule RateLimiterMan.MixProject do
       main: "readme"
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp package do
     [
