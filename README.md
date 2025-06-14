@@ -19,7 +19,7 @@ This package supports multiple rate limiter instances in your application. Just 
 Add this package to your list of dependencies in `mix.exs`, then run `mix deps.get`:
 
 ```elixir
-{:rate_limiter_man, "0.2.1"}
+{:rate_limiter_man, "0.2.2"}
 ```
 
 ### Configure your application

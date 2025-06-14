@@ -1,21 +1,6 @@
 defmodule RateLimiterMan.LeakyBucket do
   @moduledoc """
   A leaky-bucket rate limiter that processes requests at a fixed rate (e.g. 1 request per second).
-
-  ## Required config keys
-
-  - `:`
-
-  ## Optional config keys
-
-  - `:rate_limiter_logger_level` - Determines what type of Logger statement to generate when a
-  request is pushed to or popped from the queue. (default: `nil`)
-    - Examples: `nil` (Logging disabled), `:debug`, `:info`
-
-  > #### Warning {: .warning}
-  >
-  > The log statements may contain sensitive data (e.g. API keys). There is currently no way of
-  > modifying the contents of the Logger statement.
   """
 
   @behaviour RateLimiterMan

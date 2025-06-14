@@ -213,9 +213,11 @@ defmodule RateLimiterMan do
   def get_instance_name(config_key),
     do: String.to_atom("#{Macro.underscore(config_key)}_leaky_bucket_rate_limiter")
 
+  @doc false
   def get_config(otp_app, config_key, subkey, default \\ nil),
     do: Application.fetch_env!(otp_app, config_key) |> Keyword.get(subkey, default)
 
+  @doc false
   def fetch_config!(otp_app, config_key, subkey),
     do: Application.fetch_env!(otp_app, config_key) |> Keyword.fetch!(subkey)
 end
