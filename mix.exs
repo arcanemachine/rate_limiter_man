@@ -3,7 +3,7 @@ defmodule RateLimiterMan.MixProject do
 
   @project_name "Rate Limiter Man"
   @source_url "https://github.com/arcanemachine/rate_limiter_man"
-  @version "0.2.0"
+  @version "0.2.1"
 
   def project do
     [
@@ -14,7 +14,7 @@ defmodule RateLimiterMan.MixProject do
       deps: deps(),
 
       # Hex
-      description: "A simple rate limiter implementation (currently supports leaky bucket)",
+      description: "A simple rate limiter implementation (currently supports leaky bucket only)",
       package: package(),
 
       # Docs
