@@ -10,12 +10,22 @@ defmodule RateLimiterMan.TestHelpers do
 
   This function has an `on_exit/1` call to ensure that the config item is removed from the global
   application state after the test has completed.
+
+  ## Options
+
+  Any options are passed as values to their respective rate limiter config keys (e.g.
+  `:rate_limiter_algorithm`, `:rate_limiter_max_requests_per_second`).
   """
-  @spec add_rate_limiter_config :: atom()
-  def add_rate_limiter_config do
+  @spec add_rate_limiter_config(keyword()) :: atom()
+  def add_rate_limiter_config(opts \\ []) do
     config_key = get_random_config_key()
 
-    Application.put_env(TC.otp_app(), config_key, TC.rate_limiter_config_example())
+    Application.put_env(TC.otp_app(), config_key,
+      rate_limiter_algorithm:
+        Keyword.get(opts, :rate_limiter_algorithm, RateLimiterMan.LeakyBucket),
+      rate_limiter_max_requests_per_second:
+        Keyword.get(opts, :rate_limiter_max_requests_per_second, 100)
+    )
 
     on_exit(fn -> Application.delete_env(TC.otp_app(), config_key) end)
 
@@ -38,6 +48,10 @@ defmodule RateLimiterMan.TestHelpers do
     assert Process.alive?(task_supervisor_pid) == true
 
     task_supervisor_pid
+  end
+
+  def get_rate_limiter_algorithm_from_rate_limiter_config(otp_app, config_key) do
+    Application.fetch_env!(otp_app, config_key) |> Keyword.fetch!(:rate_limiter_algorithm)
   end
 
   def get_max_requests_per_second_from_rate_limiter_config(otp_app, config_key) do
@@ -68,6 +82,15 @@ defmodule RateLimiterMan.TestHelpers do
     %{config_keys: initial_config_keys ++ [config_key]}
   end
 
+  @doc "A setup function that adds a rate limiter config to the context map's `:config_keys`."
+  @spec setup_rate_limiter_config(map(), keyword()) :: %{config_keys: [atom()]}
+  def setup_rate_limiter_config(context, opts \\ []) do
+    config_keys = context[:config_keys] || []
+    config_key = add_rate_limiter_config(opts)
+
+    %{config_keys: config_keys ++ [config_key]}
+  end
+
   @doc "Start a rate limiter TaskSupervisor, then return its PID."
   @spec start_task_supervisor :: pid()
   def start_task_supervisor do
@@ -76,15 +99,6 @@ defmodule RateLimiterMan.TestHelpers do
     {:ok, task_supervisor_pid} = start_supervised(task_supervisor_spec)
 
     task_supervisor_pid
-  end
-
-  @doc "A setup function that adds a rate limiter config to the context map's `:config_keys`."
-  @spec setup_rate_limiter_config(map()) :: %{config_keys: [atom()]}
-  def setup_rate_limiter_config(context) do
-    config_keys = context[:config_keys] || []
-    config_key = add_rate_limiter_config()
-
-    %{config_keys: config_keys ++ [config_key]}
   end
 
   defp get_random_config_key, do: String.to_atom("rate_limiter_#{System.unique_integer()}")

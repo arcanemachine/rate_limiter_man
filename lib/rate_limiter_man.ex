@@ -74,6 +74,39 @@ defmodule RateLimiterMan do
   def add_rate_limiter(otp_app, config_key),
     do: {get_rate_limiter(otp_app, config_key), %{otp_app: otp_app, config_key: config_key}}
 
+  @doc false
+  def calculate_refresh_rate(otp_app, config_key) do
+    max_requests_per_second = get_max_requests_per_second(otp_app, config_key)
+
+    floor(:timer.seconds(1) / max_requests_per_second)
+  end
+
+  @doc false
+  def fetch_config!(otp_app, config_key, subkey),
+    do: Application.fetch_env!(otp_app, config_key) |> Keyword.fetch!(subkey)
+
+  @doc false
+  def get_config(otp_app, config_key, subkey, default \\ nil),
+    do: Application.fetch_env!(otp_app, config_key) |> Keyword.get(subkey, default)
+
+  @doc "Get the process name for a rate limiter instance by its `config_key`."
+  def get_instance_name(config_key),
+    do: String.to_atom("#{inspect(config_key)}_leaky_bucket_rate_limiter")
+
+  def get_max_requests_per_second(otp_app, config_key),
+    do: fetch_config!(otp_app, config_key, :rate_limiter_max_requests_per_second)
+
+  @doc """
+  Get the configured rate limiter for a given `otp_app` and `config_key`.
+
+  ## Examples
+
+      iex> RateLimiterMan.get_rate_limiter(:your_project, YourProject.SomeApi)
+      RateLimiterMan.LeakyBucket
+  """
+  def get_rate_limiter(otp_app, config_key),
+    do: get_config(otp_app, config_key, :rate_limiter_algorithm)
+
   @doc """
   Call a function via the rate limiter.
 
@@ -185,20 +218,6 @@ defmodule RateLimiterMan do
     rate_limiter.make_request(otp_app, config_key, request_handler, opts)
   end
 
-  @doc false
-  def calculate_refresh_rate(otp_app, config_key) do
-    max_requests_per_second = get_max_requests_per_second(otp_app, config_key)
-
-    floor(:timer.seconds(1) / max_requests_per_second)
-  end
-
-  @doc false
-  def get_rate_limiter(otp_app, config_key),
-    do: get_config(otp_app, config_key, :rate_limiter_algorithm)
-
-  def get_max_requests_per_second(otp_app, config_key),
-    do: fetch_config!(otp_app, config_key, :rate_limiter_max_requests_per_second)
-
   @doc "Receive a response from a rate limiter."
   def receive_response(unique_request_id, timeout \\ :timer.seconds(15)) do
     receive do
@@ -208,16 +227,4 @@ defmodule RateLimiterMan do
       timeout -> {:error, :timeout}
     end
   end
-
-  @doc "Get the process name for a rate limiter instance by its `config_key`."
-  def get_instance_name(config_key),
-    do: String.to_atom("#{inspect(config_key)}_leaky_bucket_rate_limiter")
-
-  @doc false
-  def get_config(otp_app, config_key, subkey, default \\ nil),
-    do: Application.fetch_env!(otp_app, config_key) |> Keyword.get(subkey, default)
-
-  @doc false
-  def fetch_config!(otp_app, config_key, subkey),
-    do: Application.fetch_env!(otp_app, config_key) |> Keyword.fetch!(subkey)
 end
