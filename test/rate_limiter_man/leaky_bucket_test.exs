@@ -1,11 +1,14 @@
 defmodule RateLimiterMan.LeakyBucketTest do
   use RateLimiterMan.Case
 
-  describe "make_request/4" do
-    setup {TestHelpers, :setup_task_supervisor_and_rate_limiter}
+  setup {TestHelpers, :setup_task_supervisor_and_rate_limiter}
 
+  describe "make_request/4" do
     test "calls a function via the rate limiter and sends the result back via message passing",
          %{config_keys: [config_key | _]} do
+      # Sanity check: The rate limiter has been added to the supervision tree
+      refute RateLimiterMan.get_instance_name(config_key) |> Process.whereis() |> is_nil()
+
       start_datetime = DateTime.utc_now()
 
       # Call a function via the rate limiter
@@ -22,6 +25,8 @@ defmodule RateLimiterMan.LeakyBucketTest do
 
           RateLimiterMan.receive_response(request_id)
         end)
+
+      finish_datetime = DateTime.utc_now()
 
       # The rate limiter returned the expected responses
       assert Enum.all?(responses, &(&1 == TC.request_handler_example_response()))
@@ -40,7 +45,7 @@ defmodule RateLimiterMan.LeakyBucketTest do
            start_datetime |> DateTime.add(minimum_expected_seconds_duration)
          end).()
 
-      assert Date.compare(DateTime.utc_now(), min_expected_finish_time) in [:eq, :gt]
+      assert DateTime.compare(finish_datetime, min_expected_finish_time) == :gt
     end
   end
 end

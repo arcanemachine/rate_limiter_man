@@ -60,10 +60,12 @@ defmodule RateLimiterMan.TestHelpers do
   end
 
   @doc "A setup helper function that starts a rate limiter TaskSupervisor."
-  @spec setup_task_supervisor_and_rate_limiter(map()) :: %{config_keys: list()}
-  def setup_task_supervisor_and_rate_limiter(context) do
+  @spec setup_task_supervisor_and_rate_limiter(map(), keyword()) :: %{config_keys: list()}
+  def setup_task_supervisor_and_rate_limiter(context, opts \\ []) do
+    context = context || %{}
     initial_config_keys = context[:config_keys] || []
-    config_key = add_rate_limiter_config()
+
+    config_key = add_rate_limiter_config(opts)
 
     children = [
       RateLimiterMan.add_task_supervisor(),

@@ -6,11 +6,11 @@ A simple rate limiter implementation, adapted from [a blog post by Alex Koutmous
 >
 > This is probably not the most performant rate limiter out there, but it solves the need for which it was created: adding rate limiting to an application that receives responses from multiple third-party APIs, each of which has its own rate limiter instance/config.
 
-> #### Warning {: .warning}
->
-> Currently, only the leaky bucket rate limiter algorithm is implemented by this package.
-
 This package supports multiple rate limiter instances in your application. Just follow the instructions, using a different config key for each rate limiter you want to add.
+
+## Supported rate limiter algorithms
+
+Currently, the only limiter algorithms implemented by this package are `RateLimiterMan.LeakyBucket`, and `RateLimiterMan.None` (a no-op used to temporarily bypass any configured rate limits).
 
 ## Getting started
 
@@ -19,7 +19,7 @@ This package supports multiple rate limiter instances in your application. Just 
 Add this package to your list of dependencies in `mix.exs`, then run `mix deps.get`:
 
 ```elixir
-{:rate_limiter_man, "0.2.5"}
+{:rate_limiter_man, "0.2.6"}
 ```
 
 ### Configure your application
@@ -46,6 +46,11 @@ config :your_project, YourProject.SomeApi,
 >
 > The log statements may contain sensitive data (e.g. API keys). There is currently no way of
 > modifying the contents of the Logger statement.
+
+> #### Tip {: .tip}
+>
+> To temporarily disable a rate limiter when starting your application, change the config for
+> the `:rate_limiter_algorithm` to `RateLimiterMan.None`.
 
 ### Add the rate limiter to your application's supervision tree
 

@@ -47,6 +47,11 @@ defmodule RateLimiterMan do
   >
   > The TaskSupervisor must be added to your supervision tree before adding any rate limiters.
 
+  > #### Tip {: .tip}
+  >
+  > To temporarily disable a rate limiter when starting your application, change the config for
+  > the `:rate_limiter_algorithm` to `RateLimiterMan.None`.
+
   ## Examples
 
   `lib/your_project/application.ex`
@@ -166,13 +171,9 @@ defmodule RateLimiterMan do
 
   ## Examples
 
-  Get a reference to the desired rate limiter for the following examples:
-
-      iex> rate_limiter = RateLimiterMan.get_rate_limiter(:your_project, YourProject.SomeApi)
-
   Make a request with the rate limiter:
 
-      iex> rate_limiter.make_request(
+      iex> RateLimiterMan.make_request(
       ...>   _otp_app = :your_project,
       ...>   _config_key = YourProject.RateLimiter,
       ...>   _request_handler = {IO, :puts, ["Hello world!"]}
@@ -198,7 +199,7 @@ defmodule RateLimiterMan do
 
   Make the request:
 
-      iex> rate_limiter.make_request(
+      iex> RateLimiterMan.make_request(
       ...>   _otp_app = :your_project,
       ...>   _config_key = YourProject.RateLimiter,
       ...>   _request_handler = {Enum, :join, [["Hello", "world!"], " "]},
