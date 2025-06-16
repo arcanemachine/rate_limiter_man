@@ -19,7 +19,7 @@ Currently, the only limiter algorithms implemented by this package are `RateLimi
 Add this package to your list of dependencies in `mix.exs`, then run `mix deps.get`:
 
 ```elixir
-{:rate_limiter_man, "0.2.6"}
+{:rate_limiter_man, "0.3.0"}
 ```
 
 ### Configure your application
@@ -65,12 +65,12 @@ defmodule YourProject.Application do
       [
         # Add the task supervisor before adding any rate limiters. The task supervisor should only
         # be declared once
-        RateLimiterMan.add_task_supervisor(),
+        RateLimiterMan.new_task_supervisor(),
         # Add the desired rate limiter(s). The OTP app name and config key must match the app name
         # and key used in your config file
-        RateLimiterMan.add_rate_limiter(:your_project, YourProject.SomeApi),
-        # RateLimiterMan.add_rate_limiter(:your_project, YourProject.SomeOtherApi),
-        # RateLimiterMan.add_rate_limiter(:your_project, YourProject.YetAnotherApi)
+        RateLimiterMan.new_rate_limiter(:your_project, YourProject.SomeApi),
+        # RateLimiterMan.new_rate_limiter(:your_project, YourProject.SomeOtherApi),
+        # RateLimiterMan.new_rate_limiter(:your_project, YourProject.YetAnotherApi)
       ]
 
     opts = [strategy: :one_for_one, name: YourProject.Supervisor]

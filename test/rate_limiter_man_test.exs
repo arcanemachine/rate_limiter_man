@@ -1,9 +1,9 @@
 defmodule RateLimiterManTest do
   use RateLimiterMan.Case
 
-  describe "add_task_supervisor/0" do
+  describe "new_task_supervisor/0" do
     test "returns the expected spec" do
-      assert RateLimiterMan.add_task_supervisor() ==
+      assert RateLimiterMan.new_task_supervisor() ==
                {Task.Supervisor, name: RateLimiterMan.TaskSupervisor}
     end
 
@@ -14,28 +14,28 @@ defmodule RateLimiterManTest do
     end
   end
 
-  describe "add_rate_limiter/0" do
+  describe "new_rate_limiter/0" do
     setup {TestHelpers, :setup_rate_limiter_config}
 
     test "starts a rate limiter", %{config_keys: [config_key | _]} do
-      start_supervised!(RateLimiterMan.add_rate_limiter(TC.otp_app(), config_key))
+      start_supervised!(RateLimiterMan.new_rate_limiter(TC.otp_app(), config_key))
     end
   end
 
   describe "calculate_refresh_rate/2" do
     test "returns the expected value" do
-      add_config = fn max_requests_per_second ->
-        TestHelpers.add_rate_limiter_config(
+      put_config = fn max_requests_per_second ->
+        TestHelpers.put_rate_limiter_config(
           rate_limiter_max_requests_per_second: max_requests_per_second
         )
       end
 
-      assert RateLimiterMan.calculate_refresh_rate(TC.otp_app(), add_config.(0.01)) == 100_000
-      assert RateLimiterMan.calculate_refresh_rate(TC.otp_app(), add_config.(0.1)) == 10_000
-      assert RateLimiterMan.calculate_refresh_rate(TC.otp_app(), add_config.(1)) == 1000
-      assert RateLimiterMan.calculate_refresh_rate(TC.otp_app(), add_config.(10)) == 100
-      assert RateLimiterMan.calculate_refresh_rate(TC.otp_app(), add_config.(100)) == 10
-      assert RateLimiterMan.calculate_refresh_rate(TC.otp_app(), add_config.(1000)) == 1
+      assert RateLimiterMan.calculate_refresh_rate(TC.otp_app(), put_config.(0.01)) == 100_000
+      assert RateLimiterMan.calculate_refresh_rate(TC.otp_app(), put_config.(0.1)) == 10_000
+      assert RateLimiterMan.calculate_refresh_rate(TC.otp_app(), put_config.(1)) == 1000
+      assert RateLimiterMan.calculate_refresh_rate(TC.otp_app(), put_config.(10)) == 100
+      assert RateLimiterMan.calculate_refresh_rate(TC.otp_app(), put_config.(100)) == 10
+      assert RateLimiterMan.calculate_refresh_rate(TC.otp_app(), put_config.(1000)) == 1
     end
   end
 

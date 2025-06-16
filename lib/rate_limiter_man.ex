@@ -8,77 +8,6 @@ defmodule RateLimiterMan do
 
   @callback make_request(atom(), atom(), tuple(), keyword()) :: :ok
 
-  @doc """
-  Add a TaskSupervisor to your application's supervision tree.
-
-  > #### Tip {: .tip}
-  >
-  > The TaskSupervisor must be added to your supervision tree before adding any rate limiters.
-
-  ## Examples
-
-  `lib/your_project/application.ex`
-  ```elixir
-  defmodule YourProject.Application do
-    use Application
-
-    @impl true
-    def start(_type, _args) do
-      children =
-        [
-          RateLimiterMan.add_task_supervisor()
-        ]
-
-      opts = [strategy: :one_for_one, name: YourProject.Supervisor]
-
-      Supervisor.start_link(children, opts)
-    end
-  end
-  ```
-  """
-  def add_task_supervisor, do: {Task.Supervisor, name: RateLimiterMan.TaskSupervisor}
-
-  @doc """
-  Add a rate limiter instance to your application's supervision tree.
-
-  For more information on adding a rate limiter to your application, see the [README](README.md).
-
-  > #### Tip {: .tip}
-  >
-  > The TaskSupervisor must be added to your supervision tree before adding any rate limiters.
-
-  > #### Tip {: .tip}
-  >
-  > To temporarily disable a rate limiter when starting your application, change the config for
-  > the `:rate_limiter_algorithm` to `RateLimiterMan.None`.
-
-  ## Examples
-
-  `lib/your_project/application.ex`
-  ```elixir
-  defmodule YourProject.Application do
-    use Application
-
-    @impl true
-    def start(_type, _args) do
-      children =
-        [
-          # Add the task supervisor before adding any rate limiters
-          RateLimiterMan.add_task_supervisor(),
-          RateLimiterMan.add_rate_limiter(:your_project, YourProject.SomeApi),
-          RateLimiterMan.add_rate_limiter(:your_project, YourProject.SomeOtherApi)
-        ]
-
-      opts = [strategy: :one_for_one, name: YourProject.Supervisor]
-
-      Supervisor.start_link(children, opts)
-    end
-  end
-  ```
-  """
-  def add_rate_limiter(otp_app, config_key),
-    do: {get_rate_limiter(otp_app, config_key), %{otp_app: otp_app, config_key: config_key}}
-
   @doc false
   def calculate_refresh_rate(otp_app, config_key) do
     max_requests_per_second = get_max_requests_per_second(otp_app, config_key)
@@ -218,6 +147,78 @@ defmodule RateLimiterMan do
 
     rate_limiter.make_request(otp_app, config_key, request_handler, opts)
   end
+
+  @doc """
+  Add a rate limiter instance to your application's supervision tree.
+
+  For more information on adding a rate limiter to your application, see the [README](README.md).
+
+  > #### Tip {: .tip}
+  >
+  > The TaskSupervisor must be added to your supervision tree before adding any rate limiters.
+  > For more information, see `new_task_supervisor/0`.
+
+  > #### Tip {: .tip}
+  >
+  > To temporarily disable a rate limiter when starting your application, change the config for
+  > the `:rate_limiter_algorithm` to `RateLimiterMan.None`.
+
+  ## Examples
+
+  `lib/your_project/application.ex`
+  ```elixir
+  defmodule YourProject.Application do
+    use Application
+
+    @impl true
+    def start(_type, _args) do
+      children =
+        [
+          # Add the task supervisor before adding any rate limiters
+          RateLimiterMan.new_task_supervisor(),
+          RateLimiterMan.new_rate_limiter(:your_project, YourProject.SomeApi),
+          RateLimiterMan.new_rate_limiter(:your_project, YourProject.SomeOtherApi)
+        ]
+
+      opts = [strategy: :one_for_one, name: YourProject.Supervisor]
+
+      Supervisor.start_link(children, opts)
+    end
+  end
+  ```
+  """
+  def new_rate_limiter(otp_app, config_key),
+    do: {get_rate_limiter(otp_app, config_key), %{otp_app: otp_app, config_key: config_key}}
+
+  @doc """
+  Add a TaskSupervisor to your application's supervision tree.
+
+  > #### Tip {: .tip}
+  >
+  > The TaskSupervisor must be added to your supervision tree before adding any rate limiters.
+
+  ## Examples
+
+  `lib/your_project/application.ex`
+  ```elixir
+  defmodule YourProject.Application do
+    use Application
+
+    @impl true
+    def start(_type, _args) do
+      children =
+        [
+          RateLimiterMan.new_task_supervisor()
+        ]
+
+      opts = [strategy: :one_for_one, name: YourProject.Supervisor]
+
+      Supervisor.start_link(children, opts)
+    end
+  end
+  ```
+  """
+  def new_task_supervisor, do: {Task.Supervisor, name: RateLimiterMan.TaskSupervisor}
 
   @doc "Receive a response from a rate limiter."
   def receive_response(unique_request_id, timeout \\ :timer.seconds(15)) do
