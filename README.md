@@ -10,7 +10,7 @@ This package supports multiple rate limiter instances in your application. Just 
 
 ## Supported rate limiter algorithms
 
-Currently, the only limiter algorithms implemented by this package are `RateLimiterMan.LeakyBucket`, and `RateLimiterMan.None` (a no-op used to temporarily bypass any configured rate limits).
+Currently, the only limiter algorithms implemented by this package are `RateLimiterMan.RateLimiters.LeakyBucket`, and `RateLimiterMan.RateLimiters.None` (a no-op used to temporarily bypass any configured rate limits).
 
 ## Getting started
 
@@ -19,7 +19,7 @@ Currently, the only limiter algorithms implemented by this package are `RateLimi
 Add this package to your list of dependencies in `mix.exs`, then run `mix deps.get`:
 
 ```elixir
-{:rate_limiter_man, "0.3.0"}
+{:rate_limiter_man, "0.4.0"}
 ```
 
 ### Configure your application
@@ -32,7 +32,7 @@ import Config
 
 config :your_project, YourProject.SomeApi,
   # Required items
-  rate_limiter_algorithm: RateLimiterMan.LeakyBucket,
+  rate_limiter_algorithm: RateLimiterMan.RateLimiters.LeakyBucket,
   rate_limiter_max_requests_per_second: 1
   # Optional items
   ## rate_limiter_logger_level: :debug # Enable logging when the rate limiter handles a request
@@ -50,7 +50,7 @@ config :your_project, YourProject.SomeApi,
 > #### Tip {: .tip}
 >
 > To temporarily disable a rate limiter when starting your application, change the config for
-> the `:rate_limiter_algorithm` to `RateLimiterMan.None`.
+> the `:rate_limiter_algorithm` to `RateLimiterMan.RateLimiters.None`.
 
 ### Add the rate limiter to your application's supervision tree
 
@@ -63,9 +63,9 @@ defmodule YourProject.Application do
   def start(_type, _args) do
     children =
       [
-        # Add the task supervisor before adding any rate limiters. The task supervisor should only
+        # Add the task supervisor before adding any rate limiters. The task supervisor must only
         # be declared once
-        RateLimiterMan.new_task_supervisor(),
+        RateLimiterMan.TaskSupervisor,
         # Add the desired rate limiter(s). The OTP app name and config key must match the app name
         # and key used in your config file
         RateLimiterMan.new_rate_limiter(:your_project, YourProject.SomeApi),
@@ -87,7 +87,7 @@ Now, the rate limiter process will start working when you start your application
 Any function can be passed to the rate limiter. For simplicity, this example will not make any HTTP requests.
 
 `lib/your_project/some_api.ex`
-```
+```elixir
 defmodule YourProject.SomeApi do
   def hello_world do
     request_id = System.unique_integer()

@@ -1,4 +1,4 @@
-defmodule RateLimiterMan.NoneTest do
+defmodule RateLimiterMan.RateLimiters.NoneTest do
   use RateLimiterMan.Case
   alias ExUnit.CaptureLog
 
@@ -7,7 +7,7 @@ defmodule RateLimiterMan.NoneTest do
       CaptureLog.capture_log(fn ->
         %{config_keys: [config_key | _]} =
           TestHelpers.setup_task_supervisor_and_rate_limiter(_context = nil,
-            rate_limiter_algorithm: RateLimiterMan.None
+            rate_limiter_algorithm: RateLimiterMan.RateLimiters.None
           )
 
         # The rate limiter has not been added to the supervision tree
@@ -23,7 +23,7 @@ defmodule RateLimiterMan.NoneTest do
         CaptureLog.capture_log(fn ->
           %{config_keys: [config_key | _]} =
             TestHelpers.setup_task_supervisor_and_rate_limiter(_context = nil,
-              rate_limiter_algorithm: RateLimiterMan.None,
+              rate_limiter_algorithm: RateLimiterMan.RateLimiters.None,
               rate_limiter_max_requests_per_second: 1
             )
 

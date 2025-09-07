@@ -1,4 +1,4 @@
-defmodule RateLimiterMan.LeakyBucketTest do
+defmodule RateLimiterMan.RateLimiters.LeakyBucketTest do
   use RateLimiterMan.Case
 
   setup {TestHelpers, :setup_task_supervisor_and_rate_limiter}

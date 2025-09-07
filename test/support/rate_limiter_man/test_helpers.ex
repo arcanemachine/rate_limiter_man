@@ -49,7 +49,7 @@ defmodule RateLimiterMan.TestHelpers do
 
     Application.put_env(TC.otp_app(), config_key,
       rate_limiter_algorithm:
-        Keyword.get(opts, :rate_limiter_algorithm, RateLimiterMan.LeakyBucket),
+        Keyword.get(opts, :rate_limiter_algorithm, RateLimiterMan.RateLimiters.LeakyBucket),
       rate_limiter_max_requests_per_second:
         Keyword.get(opts, :rate_limiter_max_requests_per_second, 100)
     )
