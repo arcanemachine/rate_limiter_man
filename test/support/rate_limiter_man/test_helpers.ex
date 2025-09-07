@@ -77,7 +77,7 @@ defmodule RateLimiterMan.TestHelpers do
     config_key = put_rate_limiter_config(opts)
 
     children = [
-      RateLimiterMan.new_task_supervisor(),
+      RateLimiterMan.TaskSupervisor,
       RateLimiterMan.new_rate_limiter(TC.otp_app(), config_key)
     ]
 
@@ -96,7 +96,7 @@ defmodule RateLimiterMan.TestHelpers do
   @doc "Start a rate limiter TaskSupervisor, then return its PID."
   @spec start_task_supervisor :: pid()
   def start_task_supervisor do
-    task_supervisor_spec = RateLimiterMan.new_task_supervisor()
+    task_supervisor_spec = RateLimiterMan.TaskSupervisor
 
     {:ok, task_supervisor_pid} = start_supervised(task_supervisor_spec)
 

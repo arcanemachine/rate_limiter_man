@@ -156,7 +156,7 @@ defmodule RateLimiterMan do
   > #### Tip {: .tip}
   >
   > The TaskSupervisor must be added to your supervision tree before adding any rate limiters.
-  > For more information, see `new_task_supervisor/0`.
+  > For more information, see `RateLimiterMan.TaskSupervisor`.
 
   > #### Tip {: .tip}
   >
@@ -175,7 +175,7 @@ defmodule RateLimiterMan do
       children =
         [
           # Add the task supervisor before adding any rate limiters
-          RateLimiterMan.new_task_supervisor(),
+          RateLimiterMan.TaskSupervisor,
           RateLimiterMan.new_rate_limiter(:your_project, YourProject.SomeApi),
           RateLimiterMan.new_rate_limiter(:your_project, YourProject.SomeOtherApi)
         ]
@@ -189,36 +189,6 @@ defmodule RateLimiterMan do
   """
   def new_rate_limiter(otp_app, config_key),
     do: {get_rate_limiter(otp_app, config_key), %{otp_app: otp_app, config_key: config_key}}
-
-  @doc """
-  Add a TaskSupervisor to your application's supervision tree.
-
-  > #### Tip {: .tip}
-  >
-  > The TaskSupervisor must be added to your supervision tree before adding any rate limiters.
-
-  ## Examples
-
-  `lib/your_project/application.ex`
-  ```elixir
-  defmodule YourProject.Application do
-    use Application
-
-    @impl true
-    def start(_type, _args) do
-      children =
-        [
-          RateLimiterMan.new_task_supervisor()
-        ]
-
-      opts = [strategy: :one_for_one, name: YourProject.Supervisor]
-
-      Supervisor.start_link(children, opts)
-    end
-  end
-  ```
-  """
-  def new_task_supervisor, do: {Task.Supervisor, name: RateLimiterMan.TaskSupervisor}
 
   @doc "Receive a response from a rate limiter."
   def receive_response(unique_request_id, timeout \\ :timer.seconds(15)) do

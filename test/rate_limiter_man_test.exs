@@ -1,19 +1,6 @@
 defmodule RateLimiterManTest do
   use RateLimiterMan.Case
 
-  describe "new_task_supervisor/0" do
-    test "returns the expected spec" do
-      assert RateLimiterMan.new_task_supervisor() ==
-               {Task.Supervisor, name: RateLimiterMan.TaskSupervisor}
-    end
-
-    test "can start a task supervisor" do
-      TestHelpers.start_task_supervisor()
-      |> TestHelpers.assert_task_supervisor_started()
-      |> TestHelpers.assert_task_supervisor_has_children(_no_children = [])
-    end
-  end
-
   describe "new_rate_limiter/0" do
     setup {TestHelpers, :setup_rate_limiter_config}
 
