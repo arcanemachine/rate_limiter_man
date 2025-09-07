@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Replace `RateLimiterMan.add_task_supervisor/0` with `RateLimiterMan.TaskSupervisor`
 
+- Move individual rate limiters (e.g. `RateLimiterMan.LeakyBucket`) into own namespace (e.g. `RateLimiterMan.RateLimiters.LeakyBucket`)
+
 ## v0.3.0 - 2025-06-16
 
 ### Changed

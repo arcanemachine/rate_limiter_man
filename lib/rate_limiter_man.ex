@@ -36,7 +36,7 @@ defmodule RateLimiterMan do
   ## Examples
 
       iex> RateLimiterMan.get_rate_limiter(:your_project, YourProject.SomeApi)
-      RateLimiterMan.LeakyBucket
+      RateLimiterMan.RateLimiters.LeakyBucket
   """
   def get_rate_limiter(otp_app, config_key),
     do: get_config(otp_app, config_key, :rate_limiter_algorithm)
@@ -161,7 +161,7 @@ defmodule RateLimiterMan do
   > #### Tip {: .tip}
   >
   > To temporarily disable a rate limiter when starting your application, change the config for
-  > the `:rate_limiter_algorithm` to `RateLimiterMan.None`.
+  > the `:rate_limiter_algorithm` to `RateLimiterMan.RateLimiters.None`.
 
   ## Examples
 

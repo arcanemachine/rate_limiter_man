@@ -1,4 +1,4 @@
-defmodule RateLimiterMan.None do
+defmodule RateLimiterMan.RateLimiters.None do
   @moduledoc """
   This module acts as a no-op that bypasses any rate limiting.
 
@@ -18,7 +18,7 @@ defmodule RateLimiterMan.None do
 
     %{
       id: RateLimiterMan.get_instance_name(arg[:config_key]),
-      start: {RateLimiterMan.None, :start_link, [arg]}
+      start: {RateLimiterMan.RateLimiters.None, :start_link, [arg]}
     }
   end
 

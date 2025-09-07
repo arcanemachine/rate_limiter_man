@@ -1,4 +1,4 @@
-defmodule RateLimiterMan.LeakyBucket do
+defmodule RateLimiterMan.RateLimiters.LeakyBucket do
   @moduledoc """
   A leaky-bucket rate limiter that processes requests at a fixed rate (e.g. 1 request per second).
   """
@@ -12,7 +12,7 @@ defmodule RateLimiterMan.LeakyBucket do
   def child_spec(arg) do
     %{
       id: RateLimiterMan.get_instance_name(arg[:config_key]),
-      start: {RateLimiterMan.LeakyBucket, :start_link, [arg]}
+      start: {RateLimiterMan.RateLimiters.LeakyBucket, :start_link, [arg]}
     }
   end
 
