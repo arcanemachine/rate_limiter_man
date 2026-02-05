@@ -4,7 +4,7 @@ A simple rate limiter implementation, adapted from [a blog post by Alex Koutmous
 
 > #### Warning {: .warning}
 >
-> This is probably not the most performant rate limiter out there, but it solves the need for which it was created: adding rate limiting to an application that receives responses from multiple third-party APIs, each of which has its own rate limiter instance/config.
+> This rate limiter is implemented using message passing, so it is probably not the most performant rate limiter out there. However, it solves the need for which it was created: adding rate limiting to an application that receives responses from multiple third-party APIs, each of which has its own rate limiter instance/config.
 
 This package supports multiple rate limiter instances in your application. Just follow the instructions, using a different config key for each rate limiter you want to add.
 
@@ -40,7 +40,7 @@ config :your_project, YourProject.SomeApi,
 
 > #### Tip {: .tip}
 >
-> Using the example above, the `otp_app` is `:your_project`, and the `config_key` is `YourProject.SomeApi`. These values are used to identify each rate limiter instance by the various functions in this package.
+> Using the example above, the `otp_app` is `:your_project`, and the `config_key` is `YourProject.SomeApi`. These values are used in the next step of the config process, and are used to identify each rate limiter instance by the various functions in this package.
 
 > #### Warning {: .warning}
 >
@@ -130,3 +130,13 @@ If everything worked, you can now adapt the rate limiter for use in your applica
 Project documentation: https://hexdocs.pm/rate_limiter_man
 
 Hex package: https://hex.pm/rate_limiter_man
+
+---
+
+This project made possible by Interline Travel and Tour Inc.
+
+https://www.perx.com/
+
+https://www.touchdown.co.uk/
+
+https://www.touchdownfrance.com/
