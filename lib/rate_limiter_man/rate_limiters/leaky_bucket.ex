@@ -28,6 +28,17 @@ defmodule RateLimiterMan.RateLimiters.LeakyBucket do
   def make_request(otp_app, config_key, request_handler, opts \\ []) do
     RateLimiterMan.validate_opts!(opts)
 
+    # Replies to the caller go through an alias, so `RateLimiterMan.receive_response/2` can drop a
+    # reply that arrives after it has timed out
+    opts =
+      if opts[:send_response_to_pid] == self() do
+        reply_alias = Process.alias([:reply])
+        Process.put({RateLimiterMan, opts[:request_id]}, reply_alias)
+        Keyword.put(opts, :send_response_to_pid, reply_alias)
+      else
+        opts
+      end
+
     opts =
       case Keyword.get(opts, :logger_level, :not_in_opts) do
         :not_in_opts ->

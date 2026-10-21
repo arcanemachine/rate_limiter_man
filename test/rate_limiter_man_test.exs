@@ -52,5 +52,40 @@ defmodule RateLimiterManTest do
 
       assert response == TC.request_handler_example_response()
     end
+
+    test "discards a response that arrives after the timeout", %{config_keys: [config_key | _]} do
+      request_id = System.unique_integer()
+
+      RateLimiterMan.make_request(
+        TC.otp_app(),
+        config_key,
+        {Process, :sleep, [100]},
+        send_response_to_pid: self(),
+        request_id: request_id
+      )
+
+      assert RateLimiterMan.receive_response(request_id, 0) == {:error, :timeout}
+
+      # The response has not reached the mailbox after the request completed
+      Process.sleep(300)
+      refute_received {:ok, %{request_id: ^request_id}}
+      assert Process.get({RateLimiterMan, request_id}) == nil
+    end
+
+    test "receives a response that was sent to another process", %{config_keys: [config_key | _]} do
+      test_pid = self()
+      request_id = System.unique_integer()
+
+      Task.async(fn ->
+        RateLimiterMan.make_request(TC.otp_app(), config_key, TC.request_handler_example(),
+          send_response_to_pid: test_pid,
+          request_id: request_id
+        )
+      end)
+      |> Task.await()
+
+      assert RateLimiterMan.receive_response(request_id, :timer.seconds(1)) ==
+               TC.request_handler_example_response()
+    end
   end
 end

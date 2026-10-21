@@ -94,6 +94,9 @@ defmodule RateLimiterMan do
   `x-request-id` header) (default: `nil`)
     - Examples: `"abc"`, `123`
 
+  When `send_response_to_pid` is `self()`, receive the response with `receive_response/2`, which
+  also clears the per-request state that `make_request/4` keeps in the caller.
+
   ### Handle the response as an async task
 
   To handle the response by calling a function as an async task, you must pass in the following
@@ -200,13 +203,30 @@ defmodule RateLimiterMan do
   def new_rate_limiter(otp_app, config_key),
     do: {get_rate_limiter(otp_app, config_key), %{otp_app: otp_app, config_key: config_key}}
 
-  @doc "Receive a response from a rate limiter."
+  @doc """
+  Receive a response from a rate limiter.
+
+  If no response arrives within the `timeout`, then `{:error, :timeout}` is returned, and a
+  response that arrives later is discarded instead of being left in the caller's mailbox.
+  """
   def receive_response(unique_request_id, timeout \\ :timer.seconds(15)) do
+    reply_alias = Process.delete({__MODULE__, unique_request_id})
+
     receive do
       {:ok, %{request_id: request_id, response: response}} when request_id == unique_request_id ->
         response
     after
-      timeout -> {:error, :timeout}
+      timeout ->
+        if reply_alias, do: Process.unalias(reply_alias)
+
+        # The response may have arrived between the timeout and the unalias
+        receive do
+          {:ok, %{request_id: request_id, response: response}}
+          when request_id == unique_request_id ->
+            response
+        after
+          0 -> {:error, :timeout}
+        end
     end
   end
 end
