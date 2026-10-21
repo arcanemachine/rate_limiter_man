@@ -3,6 +3,38 @@ defmodule RateLimiterMan.RateLimiters.LeakyBucketTest do
 
   setup {TestHelpers, :setup_task_supervisor_and_rate_limiter}
 
+  describe "the rate limiter process" do
+    test "releases the memory used by a burst of requests once its queue has drained" do
+      config_key = TestHelpers.put_rate_limiter_config(rate_limiter_max_requests_per_second: 1000)
+
+      rate_limiter_pid =
+        start_supervised!(RateLimiterMan.new_rate_limiter(TC.otp_app(), config_key))
+
+      # Each queued request holds a large argument on the rate limiter's heap
+      request_ids =
+        Enum.map(1..200, fn _i ->
+          request_id = System.unique_integer()
+
+          RateLimiterMan.make_request(
+            TC.otp_app(),
+            config_key,
+            {Enum, :count, [Enum.to_list(1..10_000)]},
+            send_response_to_pid: self(),
+            request_id: request_id
+          )
+
+          request_id
+        end)
+
+      assert Enum.all?(request_ids, &(RateLimiterMan.receive_response(&1) == 10_000))
+
+      Process.sleep(100)
+
+      {:total_heap_size, total_heap_size} = Process.info(rate_limiter_pid, :total_heap_size)
+      assert total_heap_size < 10_000
+    end
+  end
+
   describe "make_request/4" do
     test "calls a function via the rate limiter and sends the result back via message passing",
          %{config_keys: [config_key | _]} do

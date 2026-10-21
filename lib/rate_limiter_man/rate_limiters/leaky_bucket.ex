@@ -126,13 +126,18 @@ defmodule RateLimiterMan.RateLimiters.LeakyBucket do
         end
       end)
 
-    {:noreply,
-     %{
-       state
-       | request_queue: new_request_queue,
-         send_after_ref: schedule_timer(state.request_queue_poll_rate),
-         request_queue_size: state.request_queue_size - 1
-     }}
+    state = %{
+      state
+      | request_queue: new_request_queue,
+        send_after_ref: schedule_timer(state.request_queue_poll_rate),
+        request_queue_size: state.request_queue_size - 1
+    }
+
+    # Hibernating once the queue has drained releases the memory that a large burst of requests
+    # has left on the heap
+    if state.request_queue_size == 0,
+      do: {:noreply, state, :hibernate},
+      else: {:noreply, state}
   end
 
   defp maybe_log(nil, _message), do: nil
