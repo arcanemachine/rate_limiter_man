@@ -26,6 +26,8 @@ defmodule RateLimiterMan.RateLimiters.LeakyBucket do
 
   @impl true
   def make_request(otp_app, config_key, request_handler, opts \\ []) do
+    RateLimiterMan.validate_opts!(opts)
+
     opts =
       case Keyword.get(opts, :logger_level, :not_in_opts) do
         :not_in_opts ->
@@ -87,15 +89,6 @@ defmodule RateLimiterMan.RateLimiters.LeakyBucket do
   def handle_info(:pop_from_request_queue, state) do
     {{:value, {request_handler, opts}}, new_request_queue} =
       :queue.out(state.request_queue)
-
-    # Validate options
-    if not Enum.all?([opts[:send_response_to_pid], opts[:request_id]], &(not is_nil(&1))) and
-         Enum.any?([opts[:send_response_to_pid], opts[:request_id]], &(not is_nil(&1))) do
-      raise """
-      if either option `send_response_to_pid` or `request_id` is non-nil, then both options must \
-      be non-nil\
-      """
-    end
 
     {logger_level, opts} = Keyword.pop(opts, :logger_level)
 

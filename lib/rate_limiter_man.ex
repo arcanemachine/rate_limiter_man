@@ -27,6 +27,16 @@ defmodule RateLimiterMan do
   def get_instance_name(config_key),
     do: String.to_atom("#{inspect(config_key)}_leaky_bucket_rate_limiter")
 
+  @doc false
+  def validate_opts!(opts) do
+    if is_nil(opts[:send_response_to_pid]) != is_nil(opts[:request_id]) do
+      raise """
+      if either option `send_response_to_pid` or `request_id` is non-nil, then both options must \
+      be non-nil\
+      """
+    end
+  end
+
   def get_max_requests_per_second(otp_app, config_key),
     do: fetch_config!(otp_app, config_key, :rate_limiter_max_requests_per_second)
 

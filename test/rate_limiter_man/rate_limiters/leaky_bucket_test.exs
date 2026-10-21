@@ -47,5 +47,33 @@ defmodule RateLimiterMan.RateLimiters.LeakyBucketTest do
 
       assert DateTime.compare(finish_datetime, min_expected_finish_time) == :gt
     end
+
+    test "raises in the caller when only one of `send_response_to_pid` and `request_id` is given",
+         %{config_keys: [config_key | _]} do
+      rate_limiter_pid = RateLimiterMan.get_instance_name(config_key) |> Process.whereis()
+
+      assert_raise RuntimeError, ~r/both options must be non-nil/, fn ->
+        RateLimiterMan.make_request(TC.otp_app(), config_key, TC.request_handler_example(),
+          send_response_to_pid: self()
+        )
+      end
+
+      assert_raise RuntimeError, ~r/both options must be non-nil/, fn ->
+        RateLimiterMan.make_request(TC.otp_app(), config_key, TC.request_handler_example(),
+          request_id: System.unique_integer()
+        )
+      end
+
+      # The rate limiter has not crashed, and still processes requests
+      request_id = System.unique_integer()
+
+      RateLimiterMan.make_request(TC.otp_app(), config_key, TC.request_handler_example(),
+        send_response_to_pid: self(),
+        request_id: request_id
+      )
+
+      assert RateLimiterMan.receive_response(request_id) == TC.request_handler_example_response()
+      assert RateLimiterMan.get_instance_name(config_key) |> Process.whereis() == rate_limiter_pid
+    end
   end
 end

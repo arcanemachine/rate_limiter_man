@@ -28,14 +28,7 @@ defmodule RateLimiterMan.RateLimiters.None do
   def make_request(_otp_app, _config_key, {req_module, req_function, req_args}, opts \\ []) do
     Logger.warning("Bypassing the rate limiter for this request...")
 
-    # Validate options
-    if not Enum.all?([opts[:send_response_to_pid], opts[:request_id]], &(not is_nil(&1))) and
-         Enum.any?([opts[:send_response_to_pid], opts[:request_id]], &(not is_nil(&1))) do
-      raise """
-      if either option `send_response_to_pid` or `request_id` is non-nil, then both options must
-      be non-nil
-      """
-    end
+    RateLimiterMan.validate_opts!(opts)
 
     response = apply(req_module, req_function, req_args)
 
