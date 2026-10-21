@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.4.1 - 2026-10-21
+
+### Fixed
+
+- `RateLimiterMan.receive_response/2` discards a response that arrives after it has timed out, instead of leaving it in the caller's mailbox (uses process aliases, which require OTP 24+)
+
+- `make_request/4` with `send_response_to_pid: self()` now keeps one small entry in the caller's process dictionary per request, which `receive_response/2` clears. Callers that read the response from their mailbox directly should switch to `receive_response/2`
+
+- An invalid `send_response_to_pid`/`request_id` combination raises in the caller of `make_request/4`, instead of crashing the rate limiter and losing its queued requests
+
+- The rate limiter no longer receives a copy of each request's result
+
+- The rate limiter releases the memory used by a burst of requests once its queue has drained
+
 ## v0.4.0 - 2025-09-07
 
 ### Changed

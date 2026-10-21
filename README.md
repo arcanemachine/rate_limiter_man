@@ -19,7 +19,7 @@ Currently, the only limiter algorithms implemented by this package are `RateLimi
 Add this package to your list of dependencies in `mix.exs`, then run `mix deps.get`:
 
 ```elixir
-{:rate_limiter_man, "0.4.0"}
+{:rate_limiter_man, "0.4.1"}
 ```
 
 ### Configure your application
