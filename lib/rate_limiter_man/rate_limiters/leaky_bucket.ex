@@ -108,22 +108,23 @@ defmodule RateLimiterMan.RateLimiters.LeakyBucket do
       "Popping a request from the rate limiter queue: #{inspect(request_handler)}"
     )
 
-    Task.Supervisor.async_nolink(RateLimiterMan.TaskSupervisor, fn ->
-      {req_module, req_function, req_args} = request_handler
-      response = apply(req_module, req_function, req_args)
+    {:ok, _pid} =
+      Task.Supervisor.start_child(RateLimiterMan.TaskSupervisor, fn ->
+        {req_module, req_function, req_args} = request_handler
+        response = apply(req_module, req_function, req_args)
 
-      if not is_nil(opts[:response_handler]) do
-        {resp_module, resp_function} = opts[:response_handler]
-        apply(resp_module, resp_function, [response])
-      end
+        if not is_nil(opts[:response_handler]) do
+          {resp_module, resp_function} = opts[:response_handler]
+          apply(resp_module, resp_function, [response])
+        end
 
-      if not is_nil(opts[:send_response_to_pid]) do
-        send(
-          opts[:send_response_to_pid],
-          {:ok, %{request_id: opts[:request_id], response: response}}
-        )
-      end
-    end)
+        if not is_nil(opts[:send_response_to_pid]) do
+          send(
+            opts[:send_response_to_pid],
+            {:ok, %{request_id: opts[:request_id], response: response}}
+          )
+        end
+      end)
 
     {:noreply,
      %{
@@ -132,16 +133,6 @@ defmodule RateLimiterMan.RateLimiters.LeakyBucket do
          send_after_ref: schedule_timer(state.request_queue_poll_rate),
          request_queue_size: state.request_queue_size - 1
      }}
-  end
-
-  def handle_info({ref, _result}, state) do
-    Process.demonitor(ref, [:flush])
-
-    {:noreply, state}
-  end
-
-  def handle_info({:DOWN, _ref, :process, _pid, _reason}, state) do
-    {:noreply, state}
   end
 
   defp maybe_log(nil, _message), do: nil
