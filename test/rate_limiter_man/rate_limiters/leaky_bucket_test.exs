@@ -33,6 +33,71 @@ defmodule RateLimiterMan.RateLimiters.LeakyBucketTest do
       {:total_heap_size, total_heap_size} = Process.info(rate_limiter_pid, :total_heap_size)
       assert total_heap_size < 10_000
     end
+
+    @tag :load_test
+    @tag timeout: :timer.minutes(5)
+    test "handles a burst of 1 GB of queued requests" do
+      config_key = TestHelpers.put_rate_limiter_config(rate_limiter_max_requests_per_second: 1000)
+
+      rate_limiter_pid =
+        start_supervised!(RateLimiterMan.new_rate_limiter(TC.otp_app(), config_key))
+
+      # A 65,536-element list takes 1 MB of heap, and each request copies it into the rate limiter
+      request_count = 1024
+      argument = Enum.to_list(1..65_536)
+
+      ## Enqueue every request at once
+      request_ids =
+        Enum.map(1..request_count, fn _i ->
+          request_id = System.unique_integer()
+
+          RateLimiterMan.make_request(
+            TC.otp_app(),
+            config_key,
+            {Kernel, :length, [argument]},
+            send_response_to_pid: self(),
+            request_id: request_id
+          )
+
+          request_id
+        end)
+
+      # Sanity check: The rate limiter holds the queued requests (`:sys.get_state/1` returns once
+      # the rate limiter has processed every enqueue message)
+      :sys.get_state(rate_limiter_pid, :timer.minutes(1))
+      {:memory, peak_memory} = Process.info(rate_limiter_pid, :memory)
+      assert peak_memory > 1_000_000_000
+
+      ## Measure the responsiveness of another process while the queue drains
+      {:ok, echo_pid} = Agent.start_link(fn -> nil end)
+
+      # The task samples the round-trip time every 20 ms until it is told to stop
+      latency_task =
+        Task.async(fn ->
+          Stream.repeatedly(fn ->
+            receive do
+              :stop -> :stop
+            after
+              20 -> :timer.tc(fn -> Agent.get(echo_pid, & &1) end) |> elem(0)
+            end
+          end)
+          |> Enum.take_while(&(&1 != :stop))
+          |> Enum.max()
+        end)
+
+      assert Enum.all?(request_ids, &(RateLimiterMan.receive_response(&1) == 65_536))
+
+      # The other process has answered within 1 second throughout (garbage collecting a 1 GB heap
+      # can delay processes on the same scheduler by around 100 ms)
+      send(latency_task.pid, :stop)
+      assert Task.await(latency_task) < 1_000_000
+
+      ## The rate limiter has released the memory
+      Process.sleep(100)
+
+      {:total_heap_size, total_heap_size} = Process.info(rate_limiter_pid, :total_heap_size)
+      assert total_heap_size < 10_000
+    end
   end
 
   describe "make_request/4" do
